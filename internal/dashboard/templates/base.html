@@ -1,0 +1,191 @@
+{{define "head"}}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Title}} | VAJRA</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='28' font-size='28'%3E🗡️%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+    --bg-void: #050505;
+    --bg-surface: #0a0a0a;
+    --bg-panel: #111111;
+    --border-faint: #1a1a1a;
+    --border-active: #333333;
+    --phosphor-green: #10b981;
+    --phosphor-dim: rgba(16, 185, 129, 0.15);
+    --amber-alert: #f59e0b;
+    --cyan-auth: #06b6d4;
+    --text-main: #e5e5e5;
+    --text-muted: #888888;
+    --text-faint: #444444;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background-color: var(--bg-void);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 2px, 3px 100%;
+}
+#log-stream-canvas {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: 0; pointer-events: none; opacity: 0.3;
+}
+.ambient-glow {
+    position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    width: 80vw; height: 40vh;
+    background: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+    z-index: 0; pointer-events: none; filter: blur(60px);
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 10; }
+h1, h2, h3, h4 { font-family: var(--font-mono); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.text-green { color: var(--phosphor-green); text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+.text-muted { color: var(--text-muted); }
+.text-faint { color: var(--text-faint); }
+a { color: var(--phosphor-green); text-decoration: none; }
+a:hover { color: #34d399; }
+
+/* Navigation */
+nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.5rem 0; margin-top: 1rem;
+    border-bottom: 1px solid var(--border-active);
+    position: relative; z-index: 100;
+}
+.logo {
+    font-size: 1.2rem; font-weight: 800; color: var(--text-main);
+    font-family: var(--font-mono); text-decoration: none;
+    display: flex; align-items: center; gap: 12px;
+}
+.logo-symbol { color: var(--phosphor-green); }
+.nav-links { display: flex; gap: 0; }
+.nav-links a {
+    padding: 0.5rem 1.25rem; color: var(--text-muted); text-decoration: none;
+    font-size: 0.8rem; font-family: var(--font-mono); text-transform: uppercase;
+    transition: all 0.2s; border-bottom: 2px solid transparent;
+}
+.nav-links a:hover { color: var(--phosphor-green); }
+.nav-links a.active { color: var(--phosphor-green); border-bottom-color: var(--phosphor-green); }
+
+/* Metric boxes */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border-active); border: 1px solid var(--border-active); margin: 2rem 0; }
+.metric-box { background: rgba(10, 10, 10, 0.85); padding: 1.5rem; text-align: center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.metric-box:hover { background: rgba(17, 17, 17, 0.9); }
+.metric-value { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--phosphor-green); }
+.metric-label { font-family: var(--font-sans); font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; text-transform: uppercase; }
+
+/* Panels */
+.panel {
+    border: 1px solid var(--border-active); margin-top: 1.5rem; position: relative;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    background: rgba(5, 5, 5, 0.75);
+}
+.panel-title {
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--phosphor-green);
+    text-transform: uppercase; position: absolute; top: -10px; left: 12px;
+    background: var(--bg-void); padding: 0 6px;
+}
+.panel-body { padding: 1.5rem; padding-top: 1.75rem; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.8rem; }
+th { text-align: left; color: var(--text-faint); font-weight: 400; padding: 0.5rem; border-bottom: 1px solid var(--border-active); }
+td { padding: 0.5rem; border-bottom: 1px solid var(--border-faint); color: var(--text-main); }
+tr:hover td { background: var(--bg-panel); }
+.status-active { color: var(--phosphor-green); }
+.status-expired { color: var(--text-faint); }
+.status-denied { color: var(--amber-alert); }
+
+/* Status bar */
+.status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 1.5rem 0; padding: 1rem; background: rgba(10, 10, 10, 0.85);
+    border: 1px solid var(--border-active); font-family: var(--font-mono); font-size: 0.8rem;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.status-dot.online { background: var(--phosphor-green); box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+
+/* Footer */
+footer { margin-top: 4rem; padding: 2rem 0; border-top: 1px solid var(--border-active); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-faint); }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    nav { flex-direction: column; gap: 1rem; }
+    .nav-links { flex-wrap: wrap; justify-content: center; }
+    footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+}
+</style>
+{{end}}
+
+{{define "nav"}}
+<nav>
+    <a href="/dashboard/" class="logo">
+        <span class="logo-symbol">🗡️</span> VAJRA
+    </a>
+    <div class="nav-links">
+        <a href="/dashboard/" {{if eq .ActiveTab "overview"}}class="active"{{end}}>Overview</a>
+        <a href="/dashboard/audit" {{if eq .ActiveTab "audit"}}class="active"{{end}}>Audit</a>
+        <a href="/dashboard/agents" {{if eq .ActiveTab "agents"}}class="active"{{end}}>Agents</a>
+    </div>
+</nav>
+{{end}}
+
+{{define "footer"}}
+<footer>
+    <div>🗡️ VAJRA v{{.Version}} — Single binary, zero deps</div>
+    <div>Uptime: {{.Uptime}}</div>
+</footer>
+{{end}}
+
+{{define "canvas_script"}}
+<canvas id="log-stream-canvas"></canvas>
+<script>
+const canvas = document.getElementById('log-stream-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+const logs = [];
+const MAX_LOGS = 200;
+const font = "12px 'JetBrains Mono', monospace";
+const actions = ["MINT", "SWEEP", "REVOKE"];
+const targets = ["db_customers", "api_stripe", "db_orders", "api_slack"];
+const agents = ["agt_092a", "agt_71bz", "agt_44xx"];
+
+function init() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; ctx.font = font; }
+
+function createLogLine() {
+    const a = actions[Math.floor(Math.random()*actions.length)];
+    const t = targets[Math.floor(Math.random()*targets.length)];
+    const g = agents[Math.floor(Math.random()*agents.length)];
+    const tm = new Date().toISOString().split('T')[1].slice(0,12);
+    let c = '#333333';
+    if (a === 'MINT') c = '#10b981';
+    if (a === 'REVOKE' || a === 'SWEEP') c = '#f59e0b';
+    logs.push({text:`[${tm}] ${a} | ${g} -> ${t}`, x:Math.random()*(W-200), y:H+20, speed:1+Math.random()*2, color:c, opacity:0.8});
+    if (logs.length > MAX_LOGS) logs.splice(0, logs.length - MAX_LOGS);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    ctx.fillStyle = 'rgba(5,5,5,0.15)';
+    ctx.fillRect(0,0,W,H);
+    if (Math.random() > 0.85) createLogLine();
+    ctx.font = font;
+    for (let i = logs.length-1; i >= 0; i--) {
+        let l = logs[i]; l.y -= l.speed;
+        if (l.y < H*0.3) l.opacity -= 0.02;
+        if (l.opacity <= 0 || l.y < 0) { logs.splice(i,1); continue; }
+        ctx.fillStyle = l.color; ctx.globalAlpha = l.opacity; ctx.fillText(l.text, l.x, l.y);
+    }
+    ctx.globalAlpha = 1;
+}
+window.addEventListener('resize', init);
+init();
+animate();
+</script>
+{{end}}

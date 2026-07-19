@@ -1,0 +1,24 @@
+[Unit]
+Description=VAJRA MCP Ephemeral Identity Broker
+Documentation=https://github.com/vajra/vajra
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vajra serve --sse :9735
+Restart=on-failure
+RestartSec=5
+User=vajra
+Group=vajra
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

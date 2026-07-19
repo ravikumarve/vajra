@@ -1,0 +1,19 @@
+{
+  "name": "vajra-langchain",
+  "version": "0.1.0",
+  "description": "VAJRA ephemeral credential integration for LangChain.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublish": "npm run build"
+  },
+  "keywords": ["vajra", "langchain", "mcp", "credentials", "security"],
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/core": ">=0.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

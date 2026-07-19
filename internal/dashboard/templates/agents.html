@@ -1,0 +1,82 @@
+{{define "agents"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>{{template "head" .}}</head>
+<body>
+<div class="ambient-glow"></div>
+{{template "canvas_script" .}}
+<div class="container">
+{{template "nav" .}}
+
+<div style="margin: 1.5rem 0;">
+    <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--cyan-auth);border:1px solid var(--cyan-auth);padding:4px 10px;background:rgba(6,182,212,0.1);">
+        ■ AGENT REGISTRY — OAuth 2.1 + mTLS
+    </span>
+</div>
+
+<div class="panel">
+    <div class="panel-title">Registered Agents</div>
+    <div class="panel-body">
+        {{if .Agents}}
+        <table>
+            <thead>
+                <tr>
+                    <th>AGENT ID</th>
+                    <th>NAME</th>
+                    <th>IDENTITY</th>
+                    <th>POLICIES</th>
+                    <th>CREATED</th>
+                    <th>LAST SEEN</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Agents}}
+                <tr>
+                    <td style="color:var(--cyan-auth);font-family:var(--font-mono)">{{.ID}}</td>
+                    <td>{{.Name}}</td>
+                    <td>{{.IdentityType}}</td>
+                    <td class="text-faint" style="font-size:0.75rem;">
+                        {{- if .Policies}}{{range $i, $p := .Policies}}{{if $i}}, {{end}}{{$p}}{{end}}{{else}}<span class="text-faint">—</span>{{end -}}
+                    </td>
+                    <td class="text-faint">{{formatTime .CreatedAt}}</td>
+                    <td class="text-faint">{{if not .LastSeen.IsZero}}{{timeAgo .LastSeen}}{{else}}never{{end}}</td>
+                    <td>{{if .Active}}<span class="status-active">ACTIVE{{else}}<span class="status-expired">INACTIVE{{end}}</span></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div style="font-family:var(--font-mono);color:var(--text-muted);padding:3rem 0;text-align:center;">
+            No agents registered.<br>
+            <span style="font-size:0.8rem;color:var(--text-faint);">Agents register via OAuth 2.1 Device Flow or mTLS.</span>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<!-- Policies summary -->
+<div class="panel">
+    <div class="panel-title">Active Policies (OPA/Rego)</div>
+    <div class="panel-body">
+        {{if .Policies}}
+        <div style="font-family:var(--font-mono);font-size:0.85rem;">
+            {{range .Policies}}
+            <div style="padding:0.5rem 0;border-bottom:1px solid var(--border-faint);">
+                <span style="color:var(--phosphor-green);">📜</span> {{.}}
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div style="font-family:var(--font-mono);color:var(--text-muted);padding:1rem 0;text-align:center;">
+            No policies loaded. Use <code style="background:var(--bg-panel);padding:2px 6px;">vajra policy</code> to manage.
+        </div>
+        {{end}}
+    </div>
+</div>
+
+{{template "footer" .}}
+</div>
+</body>
+</html>
+{{end}}

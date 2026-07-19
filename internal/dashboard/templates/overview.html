@@ -1,0 +1,171 @@
+{{define "overview"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>{{template "head" .}}</head>
+<body>
+<div class="ambient-glow"></div>
+{{template "canvas_script" .}}
+<div class="container">
+{{template "nav" .}}
+
+<div style="margin: 1.5rem 0;">
+    <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--cyan-auth);border:1px solid var(--cyan-auth);padding:4px 10px;background:rgba(6,182,212,0.1);">
+        ■ VAJRA DAEMON — v{{.Version}}
+    </span>
+</div>
+
+<div class="status-bar">
+    <div><span class="status-dot online"></span> Daemon Online{{if .DemoMode}} <span style="color:var(--amber-alert);font-size:0.7rem;border:1px solid var(--amber-alert);padding:2px 6px;margin-left:8px;">DEMO</span>{{end}}</div>
+    <div>{{.CredCount}} Active Credentials</div>
+    <div>{{.AgentCount}} Agents Registered</div>
+</div>
+
+<!-- Metrics -->
+<div class="metrics">
+    <div class="metric-box">
+        <div class="metric-value" id="cred-active">{{.CredCount}}</div>
+        <div class="metric-label">Active</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" style="color:var(--cyan-auth)" id="cred-minted">{{.CredMinted}}</div>
+        <div class="metric-label">Minted Total</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" style="color:var(--amber-alert)" id="cred-expired">{{.CredExpired}}</div>
+        <div class="metric-label">Expired / Revoked</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value" style="color:var(--cyan-auth)" id="policy-count">{{.PolicyCount}}</div>
+        <div class="metric-label">Policies</div>
+    </div>
+</div>
+
+<!-- Active Credentials -->
+<div class="panel">
+    <div class="panel-title">Active Credentials — Ring Buffer</div>
+    <div class="panel-body">
+        {{if .Credentials}}
+        <table>
+            <thead>
+                <tr>
+                    <th>AGENT</th>
+                    <th>TARGET</th>
+                    <th>SCOPE</th>
+                    <th>TTL</th>
+                    <th>CREATED</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody id="creds-body">
+                {{range .Credentials}}
+                <tr>
+                    <td style="color:var(--cyan-auth)">{{.AgentID}}</td>
+                    <td>{{.Target}}</td>
+                    <td>{{.Scope}}</td>
+                    <td class="ttl-cell">{{remaining .ExpiresAt}}</td>
+                    <td>{{formatTime .CreatedAt}}</td>
+                    <td><span class="status-active">[ACTIVE]</span></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div style="font-family:var(--font-mono);color:var(--text-muted);padding:2rem 0;text-align:center;">
+            No active credentials.<br>
+            <span style="font-size:0.8rem;color:var(--text-faint);">Credentials appear here when agents make tool calls through VAJRA.</span>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<!-- Recent Audit -->
+<div class="panel">
+    <div class="panel-title">Recent Activity</div>
+    <div class="panel-body" style="max-height:300px;overflow-y:auto;" id="audit-stream">
+        {{if .AuditEntries}}
+        <table>
+            <thead>
+                <tr>
+                    <th>TIME</th>
+                    <th>EVENT</th>
+                    <th>AGENT</th>
+                    <th>TARGET</th>
+                    <th>DECISION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .AuditEntries}}
+                <tr>
+                    <td class="text-faint">{{.Timestamp.Format "15:04:05"}}</td>
+                    <td>{{.EventType}}</td>
+                    <td style="color:var(--cyan-auth)">{{.AgentID}}</td>
+                    <td>{{.Target}}</td>
+                    <td>{{if eq .Decision "allow"}}<span class="status-active">ALLOW{{else}}<span class="status-denied">DENY{{end}}</span></td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div style="font-family:var(--font-mono);color:var(--text-muted);padding:1rem 0;text-align:center;">
+            Waiting for agent activity...
+        </div>
+        {{end}}
+    </div>
+</div>
+
+{{template "footer" .}}
+</div>
+
+<!-- Live refresh via SSE -->
+<script>
+(function() {
+    const evtSource = new EventSource("/dashboard/events");
+    const credBody = document.getElementById("creds-body");
+    const credActive = document.getElementById("cred-active");
+    const credMinted = document.getElementById("cred-minted");
+    const credExpired = document.getElementById("cred-expired");
+
+    evtSource.onmessage = function(e) {
+        try {
+            const msg = JSON.parse(e.data);
+            // Refresh stats and credential table on any event
+            fetch("/dashboard/api/stats")
+                .then(r => r.json())
+                .then(s => {
+                    if (credActive) credActive.textContent = s.cred_active;
+                    if (credMinted) credMinted.textContent = s.cred_minted;
+                    if (credExpired) credExpired.textContent = s.cred_expired;
+                })
+                .catch(() => {});
+            fetch("/dashboard/api/creds")
+                .then(r => r.json())
+                .then(creds => {
+                    if (!credBody) return;
+                    if (creds.length === 0) {
+                        credBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No active credentials.</td></tr>';
+                        return;
+                    }
+                    credBody.innerHTML = creds.map(c => {
+                        const expires = new Date(c.expires_at);
+                        const now = new Date();
+                        const ttl = Math.max(0, (expires - now) / 1000);
+                        const created = new Date(c.created_at);
+                        return '<tr>' +
+                            '<td style="color:var(--cyan-auth)">' + c.agent_id + '</td>' +
+                            '<td>' + c.target + '</td>' +
+                            '<td>' + c.scope + '</td>' +
+                            '<td>' + ttl.toFixed(1) + 's</td>' +
+                            '<td class="text-faint">' + created.toISOString().slice(11,19) + '</td>' +
+                            '<td><span class="status-active">[ACTIVE]</span></td>' +
+                            '</tr>';
+                    }).join('');
+                })
+                .catch(() => {});
+        } catch(e) {}
+    };
+})();
+</script>
+
+</body>
+</html>
+{{end}}

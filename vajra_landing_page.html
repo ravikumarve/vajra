@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAJRA | MCP Ephemeral Identity Broker</title>
+    <meta name="description" content="VAJRA is an open-source MCP ephemeral identity broker for AI agents. Single Go binary, zero deps, sub-5s credentials, OPA/Rego policies, air-gapped native.">
+    <meta property="og:title" content="VAJRA — MCP Ephemeral Identity Broker">
+    <meta property="og:description" content="Your AI agents get credentials. Your secrets don't leave the vault. Air-gapped, zero-dependency credential brokering as a single Go binary.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vajra.sh">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="VAJRA — MCP Ephemeral Identity Broker">
+    <meta name="twitter:description" content="Sub-5s ephemeral credentials for AI agents. Single Go binary. Zero Docker, zero Postgres, zero cloud.">
+    <!-- Favicon (inline SVG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='28' font-size='28'%3E🗡️%3C/text%3E%3C/svg%3E">
+    <!-- Strict Monospace and Technical Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Phosphor Terminal Palette */
+            --bg-void: #050505;
+            --bg-surface: #0a0a0a;
+            --bg-panel: #111111;
+            
+            --border-faint: #1a1a1a;
+            --border-active: #333333;
+            
+            /* Accents */
+            --phosphor-green: #10b981;
+            --phosphor-dim: rgba(16, 185, 129, 0.15);
+            --amber-alert: #f59e0b;
+            --cyan-auth: #06b6d4;
+            
+            --text-main: #e5e5e5;
+            --text-muted: #888888;
+            --text-faint: #444444;
+            
+            /* Typography */
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            /* Subtle CRT scanline effect */
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        /* --- 1. TERMINAL STREAM CANVAS --- */
+        #log-stream-canvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; pointer-events: none; opacity: 0.4;
+        }
+
+        /* Ambient Glow */
+        .ambient-glow {
+            position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+            width: 80vw; height: 40vh;
+            background: radial-gradient(ellipse at top, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+            z-index: 0; pointer-events: none; filter: blur(60px);
+        }
+
+        /* Layout */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 10; }
+        section { padding: 8rem 0; border-bottom: 1px dashed var(--border-active); }
+
+        /* Typography */
+        h1, h2, h3, h4 { font-family: var(--font-mono); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; text-transform: uppercase;}
+        .text-green { color: var(--phosphor-green); text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+
+        /* --- NAVIGATION --- */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1.5rem 0; margin-top: 1rem; border-bottom: 1px solid var(--border-active);
+            position: relative; z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.2rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono);
+            text-decoration: none; display: flex; align-items: center; gap: 12px;
+        }
+        .logo-symbol { color: var(--phosphor-green); }
+
+        .nav-links { display: flex; gap: 3rem; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.8rem; font-family: var(--font-mono); text-transform: uppercase; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--phosphor-green); }
+
+        /* Hamburger — hidden on desktop */
+        .hamburger {
+            display: none; flex-direction: column; gap: 5px; cursor: pointer;
+            background: none; border: none; padding: 4px;
+        }
+        .hamburger span {
+            display: block; width: 22px; height: 2px;
+            background: var(--text-main); transition: all 0.3s;
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0.75rem 1.5rem; font-family: var(--font-mono); font-size: 0.8rem;
+            font-weight: 700; text-decoration: none; text-transform: uppercase;
+            transition: all 0.2s ease; border-radius: 2px;
+        }
+        .btn-primary { 
+            background: var(--phosphor-green); color: var(--bg-void); 
+            border: 1px solid var(--phosphor-green);
+        }
+        .btn-primary:hover { background: transparent; color: var(--phosphor-green); box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+        
+        .btn-outline { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-active); }
+        .btn-outline:hover { border-color: var(--phosphor-green); color: var(--phosphor-green); }
+
+        /* --- HERO SECTION --- */
+        .hero { min-height: 85vh; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; padding-top: 0; border: none; }
+        
+        .hero-info { display: flex; flex-direction: column; align-items: flex-start; }
+        
+        .hero-badge {
+            font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan-auth);
+            border: 1px solid var(--cyan-auth); padding: 4px 12px; background: rgba(6, 182, 212, 0.1);
+            margin-bottom: 2rem; display: inline-flex; align-items: center; gap: 8px;
+        }
+
+        .hero h1 { font-size: clamp(3rem, 5vw, 4.5rem); margin-bottom: 1.5rem; }
+        .hero p { font-family: var(--font-sans); font-size: 1.1rem; color: var(--text-muted); max-width: 500px; line-height: 1.7; margin-bottom: 3rem; }
+
+        /* --- TUI DASHBOARD MOCKUP --- */
+        .tui-mockup {
+            width: 100%; background: var(--bg-void); border: 1px solid var(--border-active);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05);
+            font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
+            display: flex; flex-direction: column; position: relative;
+        }
+        .tui-header {
+            display: flex; justify-content: space-between; padding: 0.5rem 1rem;
+            background: var(--text-main); color: var(--bg-void); font-weight: 700;
+        }
+        .tui-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        
+        .tui-panel { border: 1px solid var(--border-active); padding: 1rem; position: relative; }
+        .tui-panel-title { position: absolute; top: -10px; left: 10px; background: var(--bg-void); padding: 0 5px; color: var(--phosphor-green); }
+
+        .tui-table { width: 100%; text-align: left; border-collapse: collapse; }
+        .tui-table th { border-bottom: 1px solid var(--border-active); padding-bottom: 0.5rem; font-weight: 400; color: var(--text-faint); }
+        .tui-table td { padding: 0.5rem 0; }
+        .tui-status.active { color: var(--phosphor-green); }
+        .tui-status.expired { color: var(--text-faint); }
+
+        /* ASCII Art */
+        .ascii-art { font-size: 0.6rem; line-height: 1.1; color: var(--text-faint); margin-bottom: 1rem; white-space: pre; }
+
+        /* --- WAITLIST FORM --- */
+        .waitlist-form {
+            display: flex; gap: 0.75rem; width: 100%; max-width: 440px;
+        }
+        .waitlist-form input {
+            flex: 1; background: var(--bg-surface); border: 1px solid var(--border-active);
+            padding: 0.75rem 1rem; font-family: var(--font-mono); font-size: 0.8rem;
+            color: var(--text-main); outline: none; transition: border-color 0.2s;
+        }
+        .waitlist-form input:focus { border-color: var(--phosphor-green); }
+        .waitlist-form input::placeholder { color: var(--text-faint); }
+
+        /* --- FEATURES (BENTO MATRIX) --- */
+        .section-header { margin-bottom: 4rem; }
+        .section-header h2 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main); }
+        .section-header p { font-family: var(--font-sans); font-size: 1.1rem; color: var(--text-muted); max-width: 600px; line-height: 1.6;}
+
+        .bento-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1px; background: var(--border-active); border: 1px solid var(--border-active); }
+        
+        .bento-card {
+            background: var(--bg-surface); padding: 3rem; position: relative;
+            transition: background 0.2s; display: flex; flex-direction: column;
+        }
+        .bento-card:hover { background: var(--bg-panel); }
+
+        .col-8 { grid-column: span 8; }
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-12 { grid-column: span 12; }
+
+        .bc-tag { font-family: var(--font-mono); font-size: 0.7rem; color: var(--phosphor-green); margin-bottom: 1.5rem; display: block; text-transform: uppercase;}
+        .bento-card h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-main); }
+        .bento-card p { font-family: var(--font-sans); font-size: 1rem; color: var(--text-muted); line-height: 1.7; }
+
+        /* Terminal block inside bento */
+        .term-block { margin-top: 2rem; background: var(--bg-void); border: 1px solid var(--border-active); padding: 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-main); line-height: 1.6; overflow-x: auto;}
+        .tb-cmd { color: var(--phosphor-green); }
+        .tb-arg { color: var(--cyan-auth); }
+        .tb-comment { color: var(--text-faint); }
+
+        /* --- ARCHITECTURE --- */
+        .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+        
+        .stack-list { list-style: none; display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--border-active);}
+        .stack-list li { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 0.95rem; color: var(--text-muted); align-items: center; border-bottom: 1px solid var(--border-active); padding: 1.25rem 0;}
+        .stack-list li span:last-child { color: var(--text-main); font-family: var(--font-mono); font-size: 0.75rem; background: var(--bg-void); padding: 4px 8px; border: 1px solid var(--border-active);}
+
+        /* --- PRICING --- */
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border-active); border: 1px solid var(--border-active); margin-top: 3rem; }
+        .price-card { background: var(--bg-surface); padding: 3rem; display: flex; flex-direction: column; }
+        .price-card:hover { background: var(--bg-panel); }
+        
+        .p-tier { font-family: var(--font-mono); font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-main); }
+        .p-desc { font-family: var(--font-sans); font-size: 0.9rem; color: var(--text-muted); margin-bottom: 2rem; min-height: 40px;}
+        .p-price { font-family: var(--font-mono); font-size: 2.5rem; font-weight: 700; color: var(--phosphor-green); margin-bottom: 2rem; border-bottom: 1px solid var(--border-active); padding-bottom: 2rem;}
+        
+        .p-features { list-style: none; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem; flex: 1; font-family: var(--font-sans);}
+        .p-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; color: var(--text-muted); }
+        .p-features li::before { content: '>'; color: var(--phosphor-green); font-family: var(--font-mono); font-weight: 700;}
+
+        /* --- FOOTER --- */
+        footer { padding: 4rem 0 2rem; display: flex; justify-content: space-between; align-items: flex-start; border-top: 1px solid var(--border-active); }
+        .f-brand p { font-family: var(--font-sans); color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem; max-width: 350px; line-height: 1.6; }
+        
+        .f-links { display: flex; gap: 4rem; }
+        .f-col h5 { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-main); margin-bottom: 1.5rem; }
+        .f-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.8rem; }
+        .f-col a { font-family: var(--font-sans); color: var(--text-muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .f-col a:hover { color: var(--phosphor-green); }
+
+        .f-bottom { margin-top: 4rem; padding-top: 2rem; border-top: 1px dashed var(--border-active); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-faint); }
+
+        /* Responsiveness */
+        @media (max-width: 1024px) {
+            .hero { grid-template-columns: 1fr; gap: 3rem; text-align: center; }
+            .hero-info { align-items: center; }
+            .hero p { max-width: 100%; }
+            .tui-mockup { max-width: 600px; margin: 0 auto; }
+            .arch-grid { grid-template-columns: 1fr; gap: 2rem; }
+            .pricing-grid { grid-template-columns: 1fr; }
+            .col-8, .col-4, .col-6 { grid-column: span 12; }
+            footer { flex-direction: column; gap: 3rem; }
+            .waitlist-form { max-width: 100%; }
+        }
+
+        @media (max-width: 768px) {
+            nav { flex-direction: row; flex-wrap: wrap; }
+            .hamburger { display: flex; }
+            .nav-links {
+                display: none; width: 100%; flex-direction: column; gap: 0;
+                background: var(--bg-surface); border: 1px solid var(--border-active);
+                margin-top: 0.5rem; padding: 0.5rem 0;
+            }
+            .nav-links.open { display: flex; }
+            .nav-links a { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-faint); }
+            .nav-links a:last-child { border-bottom: none; }
+            .hero h1 { font-size: 2.5rem; }
+            .bento-card, .price-card { padding: 2rem 1.5rem; }
+            .waitlist-form { flex-direction: column; }
+            .f-links { flex-direction: column; gap: 2rem; }
+            .f-bottom { flex-direction: column; gap: 1rem; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Illumination -->
+    <div class="ambient-glow"></div>
+
+    <!-- Background Terminal Stream Canvas -->
+    <canvas id="log-stream-canvas"></canvas>
+
+    <div class="container">
+        <!-- NAVIGATION -->
+        <nav>
+            <a href="#" class="logo">
+                <span class="logo-symbol">🗡️</span> VAJRA
+            </a>
+            <button class="hamburger" id="menuToggle" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="nav-links" id="navLinks">
+                <a href="#core">The Engine</a>
+                <a href="#architecture">Architecture</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#waitlist">Waitlist</a>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <a href="https://github.com/vajra/vajra" class="btn btn-outline">GitHub</a>
+            </div>
+        </nav>
+
+        <!-- HERO SECTION -->
+        <section class="hero">
+            <div class="hero-info">
+                <div class="hero-badge">
+                    <span>■</span> v0.1.0 — 28MB STATIC BINARY
+                </div>
+                <h1>MCP Ephemeral <br><span class="text-green">Identity Broker.</span></h1>
+                <p>Your AI agents get credentials. Your secrets don't leave the vault. VAJRA is an air-gapped, zero-dependency broker that issues sub-5-second, scoped credentials for every tool call.</p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <a href="#waitlist" class="btn btn-primary">Join Waitlist</a>
+                    <a href="#core" class="btn btn-outline">Read The Spec</a>
+                </div>
+            </div>
+
+            <!-- TUI DASHBOARD MOCKUP -->
+            <div class="tui-mockup">
+                <div class="tui-header">
+                    <span>VAJRA // TUI DASHBOARD</span>
+                    <span>v0.1.0 [air-gapped]</span>
+                </div>
+                <div class="tui-body">
+                    <div class="ascii-art">
+   __      __   _  __  ____      ___   
+   \ \    / /  / | \ \/ / _ \    /   \  
+    \ \  / /  /  |  \  / |_) |  / /_\ \ 
+     \ \/ /  / /| | / /|  _ <  / /___\ \
+      \__/  /_/ |_|/_/ |_| \_\/_/     \_\
+                    </div>
+                    
+                    <div class="tui-panel">
+                        <span class="tui-panel-title">CREDENTIAL RING BUFFER</span>
+                        <table class="tui-table">
+                            <thead>
+                                <tr>
+                                    <th>AGENT_ID</th>
+                                    <th>TARGET</th>
+                                    <th>SCOPE</th>
+                                    <th id="ttl-header">TTL</th>
+                                    <th>STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mock-table-body">
+                                <tr>
+                                    <td>agt_092a</td>
+                                    <td>db_customers</td>
+                                    <td>read:email</td>
+                                    <td class="ttl-cell">2.1s</td>
+                                    <td class="tui-status active">[ACTIVE]</td>
+                                </tr>
+                                <tr>
+                                    <td>agt_092a</td>
+                                    <td>api_stripe</td>
+                                    <td>read:subs</td>
+                                    <td class="ttl-cell">4.8s</td>
+                                    <td class="tui-status active">[ACTIVE]</td>
+                                </tr>
+                                <tr>
+                                    <td>agt_71bz</td>
+                                    <td>db_orders</td>
+                                    <td>write:status</td>
+                                    <td class="ttl-cell">0.0s</td>
+                                    <td class="tui-status expired">[SWEPT]</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; color: var(--text-faint); margin-top: 0.5rem;">
+                        <span>CPU: 0.2% | MEM: 14MB</span>
+                        <span>[q]uit [h]elp [r]evoke</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CORE FEATURES (BENTO MATRIX) -->
+        <section id="core">
+            <div class="section-header">
+                <h2>No Docker. No Postgres. <br>Just <span class="text-green">./vajra</span></h2>
+                <p>The default approach of baking API keys into `.env` files is a security disaster waiting for a prompt injection. Static credentials mean one leak equals total compromise.</p>
+            </div>
+
+            <div class="bento-grid">
+                <!-- Ephemeral -->
+                <div class="bento-card col-6">
+                    <span class="bc-tag">01 // Zero Standing Privilege</span>
+                    <h3>Sub-5s Ephemeral Credentials</h3>
+                    <p>Credentials exist only when needed. The in-memory ring buffer mints, issues, and sweeps credentials in under 5 seconds. If an agent is hijacked, the key is already dead.</p>
+                </div>
+
+                <!-- ABAC -->
+                <div class="bento-card col-6">
+                    <span class="bc-tag">02 // OPA/Rego Engine</span>
+                    <h3>Strict ABAC Policies</h3>
+                    <p>Implement row-level, column-level, and API-scoped boundaries using industry-standard Open Policy Agent (OPA/Rego). No custom DSLs to learn.</p>
+                </div>
+
+                <!-- Audit -->
+                <div class="bento-card col-4">
+                    <span class="bc-tag">03 // Immutability</span>
+                    <h3>SQLite Audit Trail</h3>
+                    <p>Every mint, use, and expiry is logged to an embedded, append-only SQLite database. Stream logs via JSON stdout to your SIEM.</p>
+                </div>
+
+                <!-- CLI Demo -->
+                <div class="bento-card col-8">
+                    <span class="bc-tag">04 // Developer Experience</span>
+                    <h3>Command Line Control</h3>
+                    <p>Mint scoped credentials manually, test OPA policies, and monitor the credential stream directly from your terminal.</p>
+                    
+                    <div class="term-block">
+                        <span class="tb-comment"># Mint a scoped credential manually</span><br>
+                        $ <span class="tb-cmd">./vajra</span> mint <span class="tb-arg">--db</span> customers <span class="tb-arg">--ttl</span> 5s <span class="tb-arg">--select</span> "email,name"<br><br>
+                        <span class="tb-comment"># Watch live credential stream</span><br>
+                        $ <span class="tb-cmd">./vajra</span> ps
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ARCHITECTURE -->
+        <section id="architecture">
+            <div class="section-header">
+                <h2>Air-gapped <br>Native.</h2>
+                <p>Built for defense, healthcare, and enterprise environments. A single 28MB binary compiled with Go 1.24+. Zero cloud dependencies.</p>
+            </div>
+            
+            <div class="arch-grid">
+                <div>
+                    <ul class="stack-list" style="border-top: none;">
+                        <li>Transport <span>MCP 2026-07-28 (stdio/SSE)</span></li>
+                        <li>Policy Engine <span>open-policy-agent/opa</span></li>
+                        <li>Storage (Audit) <span>Embedded SQLite</span></li>
+                        <li>TUI Dashboard <span>charmbracelet/bubbletea</span></li>
+                        <li>Auth Subsystem <span>OAuth 2.1 Device Flow + mTLS</span></li>
+                        <li>Agent SDKs <span>LangChain (Py/TS), CrewAI</span></li>
+                    </ul>
+                </div>
+                
+                <div class="term-block" style="margin-top: 0; display: flex; flex-direction: column; justify-content: center;">
+                    <div class="tb-comment" style="margin-bottom: 1rem;">// VAJRA DATA FLOW</div>
+                    <div>[Agent] <span style="color: var(--border-active);">--></span> [Transport: SSE]</div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: var(--border-active);">|</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: var(--border-active);">v</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Policy: Rego]</div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: var(--border-active);">|</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: var(--border-active);">v</span></div>
+                    <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Cred Ring Buffer] <span style="color: var(--border-active);">--></span> [Audit: SQLite]</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WAITLIST -->
+        <section id="waitlist">
+            <div class="section-header">
+                <h2>Get Early <span class="text-green">Access.</span></h2>
+                <p>VAJRA is shipping now. Join the waitlist for launch updates, early-bird pricing, and a free Starter license for the first 100 signups.</p>
+            </div>
+            <form class="waitlist-form" action="#" method="post" onsubmit="event.preventDefault(); document.getElementById('waitlist-msg').style.display='block'; this.reset();">
+                <input type="email" placeholder="your@email.com" required>
+                <button type="submit" class="btn btn-primary">Notify Me</button>
+            </form>
+            <div id="waitlist-msg" style="display: none; margin-top: 1rem; font-family: var(--font-mono); color: var(--phosphor-green); font-size: 0.85rem;">
+                ✓ You're on the list. We'll ping you at launch.
+            </div>
+        </section>
+
+        <!-- PRICING -->
+        <section id="pricing">
+            <div class="section-header">
+                <h2>No Subscriptions.<br>No Cloud.</h2>
+                <p>Purchase a license, download the binary, and run it forever. Built by a solo developer for engineers who care about security.</p>
+            </div>
+
+            <div class="pricing-grid">
+                <div class="price-card">
+                    <div class="p-tier">Core</div>
+                    <div class="p-desc">For open-source projects needing a reference architecture.</div>
+                    <div class="p-price">$0</div>
+                    <ul class="p-features">
+                        <li>MCP Proxy (stdio + SSE)</li>
+                        <li>Credential Ring Buffer</li>
+                        <li>CLI Tools (mint, revoke, ps)</li>
+                        <li>OPA/Rego Policies</li>
+                    </ul>
+                    <a href="https://github.com/vajra/vajra" class="btn btn-outline">Clone GitHub</a>
+                </div>
+
+                <div class="price-card" style="border-top: 2px solid var(--phosphor-green); position: relative; z-index: 2;">
+                    <div class="p-tier">Starter</div>
+                    <div class="p-desc">For indie devs building AI agents locally.</div>
+                    <div class="p-price">$79</div>
+                    <ul class="p-features">
+                        <li>Everything in Core</li>
+                        <li>LangChain Adapters (TS + Python)</li>
+                        <li>CrewAI Adapter</li>
+                        <li>SQLite Audit Persistence</li>
+                        <li>Terminal Dashboard (TUI)</li>
+                    </ul>
+                    <a href="#waitlist" class="btn btn-primary">Join Waitlist</a>
+                </div>
+
+                <div class="price-card">
+                    <div class="p-tier">Pro</div>
+                    <div class="p-desc">For consultancies and air-gapped deployments.</div>
+                    <div class="p-price">$149</div>
+                    <ul class="p-features">
+                        <li>Everything in Starter</li>
+                        <li>OAuth 2.1 + mTLS Auth</li>
+                        <li>Agent Registry</li>
+                        <li>Docker + Docker Compose</li>
+                        <li>Priority Support & Early Updates</li>
+                    </ul>
+                    <a href="#waitlist" class="btn btn-outline">Join Waitlist</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer>
+            <div class="f-brand">
+                <a href="#" class="logo"><span class="logo-symbol">🗡️</span> VAJRA</a>
+                <p>Your AI agents get credentials. Your secrets don't leave the vault. Open-source boilerplate for MCP ephemeral identity brokering.</p>
+            </div>
+            
+            <div class="f-links">
+                <div class="f-col">
+                    <h5>Docs</h5>
+                    <ul>
+                        <li><a href="#architecture">System Design</a></li>
+                        <li><a href="#core">Integration Patterns</a></li>
+                        <li><a href="#core">OPA/Rego Policies</a></li>
+                    </ul>
+                </div>
+                <div class="f-col">
+                    <h5>Repository</h5>
+                    <ul>
+                        <li><a href="https://github.com/vajra/vajra">GitHub Source</a></li>
+                        <li><a href="#core">CLI Documentation</a></li>
+                        <li><a href="https://github.com/vajra/vajra/releases">Releases</a></li>
+                    </ul>
+                </div>
+            </div>
+        </footer>
+        
+        <div class="f-bottom">
+            <div>© 2026 VAJRA SECURITY. MIT / COMMERCIAL LICENSE.</div>
+            <div>STATUS: <span style="color: var(--phosphor-green);">v0.1.0 STABLE</span></div>
+        </div>
+    </div>
+
+    <!-- TERMINAL STREAM CANVAS LOGIC -->
+    <script>
+        const canvas = document.getElementById('log-stream-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        
+        const logs = [];
+        const MAX_LOGS = 200;
+        const font = "12px 'JetBrains Mono', monospace";
+        
+        // Mock audit data for the background stream
+        const actions = ["MINT", "SWEEP", "REVOKE", "EVAL"];
+        const targets = ["db_customers", "api_stripe", "db_orders", "api_sendgrid", "fs_local"];
+        const agents = ["agt_092a", "agt_71bz", "agt_44xx", "agt_88yy"];
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            ctx.font = font;
+        }
+
+        function createLogLine() {
+            const action = actions[Math.floor(Math.random() * actions.length)];
+            const target = targets[Math.floor(Math.random() * targets.length)];
+            const agent = agents[Math.floor(Math.random() * agents.length)];
+            const time = new Date().toISOString().split('T')[1].slice(0, 12);
+            
+            let color = '#333333';
+            if (action === 'MINT') color = '#10b981';
+            if (action === 'REVOKE' || action === 'SWEEP') color = '#f59e0b';
+            
+            const text = `[${time}] ${action} | ${agent} -> ${target} | TTL: ${(Math.random() * 5).toFixed(2)}s`;
+            
+            logs.push({
+                text: text,
+                x: Math.random() * (width - 200),
+                y: height + 20,
+                speed: 1 + Math.random() * 2,
+                color: color,
+                opacity: 0.8
+            });
+
+            // Cap array to prevent memory leak
+            if (logs.length > MAX_LOGS) {
+                logs.splice(0, logs.length - MAX_LOGS);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            if (Math.random() > 0.8) {
+                createLogLine();
+            }
+
+            ctx.font = font;
+            for (let i = logs.length - 1; i >= 0; i--) {
+                let log = logs[i];
+                log.y -= log.speed;
+                
+                if (log.y < height * 0.3) {
+                    log.opacity -= 0.02;
+                }
+
+                if (log.opacity <= 0 || log.y < 0) {
+                    logs.splice(i, 1);
+                    continue;
+                }
+
+                ctx.fillStyle = log.color;
+                ctx.globalAlpha = log.opacity;
+                ctx.fillText(log.text, log.x, log.y);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        animate();
+
+        // --- MOBILE HAMBURGER TOGGLE ---
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.getElementById('navLinks').classList.toggle('open');
+        });
+
+        // --- LIVE TTI COUNTER (MOCKUP) ---
+        setInterval(() => {
+            const cells = document.querySelectorAll('.ttl-cell');
+            cells.forEach(cell => {
+                let val = parseFloat(cell.textContent);
+                if (val > 0) {
+                    val = Math.max(0, val - 0.3);
+                    cell.textContent = val.toFixed(1) + 's';
+                }
+            });
+        }, 1000);
+    </script>
+</body>
+</html>
