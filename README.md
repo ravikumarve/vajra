@@ -2,6 +2,12 @@
 
 **Your AI agents get credentials. Your secrets don't leave the vault.**
 
+<p align="center">
+  <img src="https://img.shields.io/github/stars/ravikumarve/vajra?style=social" />
+  <img src="https://img.shields.io/github/license/ravikumarve/vajra" />
+  <img src="https://img.shields.io/badge/status-active-brightgreen" />
+</p>
+
 VAJRA is an open-source boilerplate that gives your AI agents **ephemeral, scoped, self-destructing credentials** for every tool call. Built as a **single Go binary** — no Docker, no Postgres, no cloud dependencies. Everything is embedded.
 
 > v0.1.0 — All core subsystems built and wired. 28MB static binary. Zero runtime deps.
@@ -124,6 +130,12 @@ go build -ldflags="-s -w" -o vajra .
 
 All tiers ship as single Go binaries. No subscriptions. No cloud. No hidden costs.
 
+<p align="center">
+  <a href="https://gumroad.com/ravikumarve">
+    <img src="https://img.shields.io/badge/Buy-Starter%20%26%20Pro%20on%20Gumroad-FF90E8?logo=gumroad" alt="Buy on Gumroad" />
+  </a>
+</p>
+
 ## Why VAJRA?
 
 - **Zero runtime deps** — literally just the binary. Not even a shell.
@@ -146,6 +158,10 @@ Produces a ~28MB static binary. No build-time deps beyond Go 1.24+.
 
 Core engine: **MIT License** — use it, fork it, learn from it.
 Starter/Pro tiers: **Commercial license** (purchased via Gumroad).
+
+## 🛒 Support the Project
+
+Star the repo, share it, or grab the Pro tier: [Buy on Gumroad](https://gumroad.com/ravikumarve)
 
 ---
 
