@@ -131,7 +131,7 @@ go build -ldflags="-s -w" -o vajra .
 All tiers ship as single Go binaries. No subscriptions. No cloud. No hidden costs.
 
 <p align="center">
-  <a href="https://gumroad.com/ravikumarve">
+  <a href="https://ravikumarve.gumroad.com">
     <img src="https://img.shields.io/badge/Buy-Starter%20%26%20Pro%20on%20Gumroad-FF90E8?logo=gumroad" alt="Buy on Gumroad" />
   </a>
 </p>
@@ -161,7 +161,7 @@ Starter/Pro tiers: **Commercial license** (purchased via Gumroad).
 
 ## 🛒 Support the Project
 
-Star the repo, share it, or grab the Pro tier: [Buy on Gumroad](https://gumroad.com/ravikumarve)
+Star the repo, share it, or grab the Pro tier: [Buy on Gumroad](https://ravikumarve.gumroad.com)
 
 ---
 
