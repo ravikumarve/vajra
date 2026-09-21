@@ -102,8 +102,11 @@ A: Minting is local and sub-millisecond. The 5-second TTL is expiry, not latency
 | Feature 2 | Live credential mint (scoped, 5s TTL) | PNG ✅ `02-mint.png` |
 | Feature 3 | Active credentials + policy list | PNG ✅ `03-ps.png`, `04-policy.png` |
 | Demo GIF | Full flow: help → mint → TUI dashboard | GIF ✅ `demo.gif` |
+| Web Overview | Dashboard stat cards + live activity | PNG ✅ `06-web-overview.png` |
+| Web Audit | Append-only audit trail table | PNG ✅ `07-web-audit.png` |
+| Web Agents | Agent registry + active policies | PNG ✅ `08-web-agents.png` |
 
-(All assets exist in `screenshots/` — verified renders from the v0.1.0 binary.)
+(All assets exist in `screenshots/` — verified renders from the v0.1.0 binary + live daemon.)
 
 ---
 
