@@ -1,0 +1,112 @@
+# VAJRA Commercial License
+
+Copyright (c) 2026 Ravi Kumar. All rights reserved.
+
+This software ("VAJRA") is licensed, not sold. By purchasing, downloading, or
+using VAJRA in any form, you agree to the terms below.
+
+---
+
+## 1. Grant of License
+
+Upon a verified purchase through the official Gumroad listing, the copyright
+holder grants you a limited, non-exclusive, non-transferable, worldwide
+license to use VAJRA according to the tier purchased:
+
+### Core Tier (Free — MIT)
+
+The core engine (MCP proxy, credential ring buffer, CLI, Rego policies) is
+free under the MIT License — see `LICENSE-MIT`. Everything below applies to
+the paid tiers.
+
+### Starter Tier ($79)
+
+You MAY:
+- Use, run, modify, and deploy VAJRA for your own internal business purposes
+  and for products or services you operate for your own customers — including
+  AI agent credential brokering.
+- Deploy unlimited instances for your own organization's use.
+- Modify the source code freely; modifications are owned by you.
+
+You may NOT:
+- Redistribute, resell, sublicense, publish, or share the paid-tier source
+  code (adapters, audit persistence, SSO template), in whole or in part, in
+  original or modified form — including as a boilerplate, starter kit,
+  template, scaffold, course material, or competing product.
+- Offer VAJRA itself (or a derivative whose primary value is the VAJRA
+  codebase) for sale or free distribution.
+- Remove or obscure copyright, attribution, or license notices embedded in
+  the source files.
+
+### Pro Tier ($149)
+
+Everything in Starter, plus:
+- Full white-label rights: rebrand VAJRA, remove all VAJRA branding, and
+  deliver it as part of your own commercial offerings to your clients,
+  including agency/client agent projects and secure enterprise demos.
+- Client deployments: install customized VAJRA instances on client-owned
+  infrastructure (including air-gapped) as part of a paid engagement.
+- Priority support.
+
+You may still NOT redistribute the paid-tier source as a standalone
+boilerplate, template, or product that competes with VAJRA.
+
+---
+
+## 2. Updates
+
+Paid tiers include all v1.x releases. Updates are delivered exclusively
+through the official Gumroad listing (re-download with your purchase
+credentials). There is no public repository distribution channel for paid
+tiers; the MIT Core remains publicly available.
+
+---
+
+## 3. Team Usage
+
+A single license covers one organization. Team members and contractors of
+that organization may use VAJRA under the same license while working for the
+licensee. Sharing the paid-tier source outside the licensee organization is
+prohibited.
+
+---
+
+## 4. Ownership
+
+VAJRA is and remains the exclusive property of Ravi Kumar. This license grants
+usage rights only — no ownership, title, or intellectual property rights are
+transferred except to your own modifications as described above.
+
+---
+
+## 5. No Warranty
+
+VAJRA IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM,
+OUT OF, OR IN CONNECTION WITH VAJRA OR ITS USE.
+
+---
+
+## 6. Termination
+
+This license terminates automatically upon breach of any term. Upon
+termination, you must cease all use and destroy all copies of the paid-tier
+software in your possession. Sections 4, 5, and 7 survive termination.
+
+---
+
+## 7. Governing Terms
+
+This is the complete agreement between you and the copyright holder
+regarding VAJRA and supersedes any prior proposals or agreements. Any dispute
+shall be subject to the jurisdiction of the copyright holder's place of
+business.
+
+---
+
+## Contact
+
+License questions, extended/team/enterprise inquiries:
+via the official Gumroad listing or github.com/ravikumarve

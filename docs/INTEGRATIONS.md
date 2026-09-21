@@ -81,10 +81,12 @@ result = executor.invoke({"input": "List all users in the pro plan"})
 ### Configuration via Environment
 
 ```bash
-# Required
+# Required (values below are placeholders — mint a real secret per agent:
+# `vajra mint --target self --scope agent --ttl 8760h`, then store it in
+# your agent host env or secret manager, never in git)
 VAJRA_ENDPOINT="http://localhost:9735"
 VAJRA_AGENT_ID="my-agent-001"
-VAJRA_AGENT_SECRET="sk_vajra_abc123"
+VAJRA_AGENT_SECRET="<minted-per-agent>"
 
 # Optional
 VAJRA_DEFAULT_TTL="5s"           # Default credential lifetime
@@ -472,10 +474,11 @@ agents:
 ### Environment Variables (on Agent host)
 
 ```bash
-# Required — tells the adapter where to find VAJRA
+# Required — tells the adapter where to find VAJRA (secret minted per agent,
+# see "Configuration via Environment" above — never commit real secrets)
 export VAJRA_ENDPOINT="http://localhost:9735"
 export VAJRA_AGENT_ID="my-agent-001"
-export VAJRA_AGENT_SECRET="sk_vajra_abc123"
+export VAJRA_AGENT_SECRET="<minted-per-agent>"
 
 # Optional — policy overrides
 export VAJRA_DEFAULT_TTL="5s"

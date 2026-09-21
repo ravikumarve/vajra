@@ -43,6 +43,17 @@
 - [ ] **Launch:** Gumroad listing + HN post + Dev.to series + landing page
 
 ## Session Memory
+### [2026-09-21] — Sale packaging: PRODUCT.md + dual LICENSE + 5 shots + dist zip ✅
+- **State:** Success — committed & pushed. PRODUCT.md filled (positioning/buyers/features/Core-$79-$149 tiers/stack/v0.1.0 status); LICENSE upgraded to full Commercial (Core carve-out → LICENSE-MIT added, matches README dual model); 5 screenshots (01-help/02-mint/03-ps/04-policy PNGs via PIL renderer + 05-tui frame + demo.gif via vhs 0.11); dist/vajra-v0.1.0-gumroad.zip (9.4M: binary + licenses + README + PRODUCT + env + policies + contrib + docs). Binary + dist/ stay gitignored (local artifacts). Committed fix-pack leftovers too (retry.go/tests, migrations, Dockerfile, ci.yml, .env.example, sqlite.go hardening).
+- **Gates:** `go build` ✅ 28M binary; verifier 74/100 carried; screenshots visually verified (TUI dashboard renders live).
+- **Next Turn Directive:** Still missing for listing: Gumroad sales copy (no GUMROAD doc yet). Then list Starter $79 / Pro $149.
+### [2026-09-20] — Pre-sale Fix Pack: verifier 63 → 74 GATE PASS ✅ (first test suite)
+- **State:** Success — all changes local + tested, NOT committed
+- **Fixes:** INTEGRATIONS.md secrets → `<minted-per-agent>` placeholders; `.gitignore` node/__pycache__/venv; `.env.example`; `Dockerfile` (distroless static binary); `ci.yml` (vet/test/build); `migrations/` (001 audit schema + README, `PRAGMA user_version` stamping + newer-than-binary refusal in `sqlite.go`); `audit/retry.go` (backoff+jitter on SQLITE_BUSY, wired into `Log`); first tests — policy (defaults/custom/invalid, 5), audit retry+roundtrip (5), ring TTL/revoke (2), device flow (2) = **14 pass**
+- **Left as honest WARNs:** framework (stdlib CLI, no web framework — correct), input-validation (no validator dep — optional `go-playground/validator` later), dangerous-calls (SQLite `.Exec` + OPA `.Eval` API names — unrenamable false positives)
+- **Gates:** verifier **74/100 PASS 29/WARN 3/FAIL 0** | `go build` ✅ `go vet` clean ✅ 14/14 tests ✅ (pre-existing gofmt drift in 7 untouched files left alone)
+- **Next Turn Directive:** Commit fix pack (LICENSE + PRODUCT.md still untracked — decide: ship commercial LICENSE in repo per $79/$149 plan), capture screenshots (0 today — Gumroad requires), then list
+
 ### [2026-07-17 18:00] — VAJRA Validation & Pivot Sprint
 - **State:** Success — Market research complete, pivot decision made
 - **MCP Data Used:** websearch (market research, competitor analysis, boilerplate market data), code_tree (project structure), project-bootstrap (AGENTS.md template)

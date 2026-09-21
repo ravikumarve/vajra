@@ -10,6 +10,15 @@ vajra.exe
 .env
 .env.local
 
+# JS/TS adapters (adapters/langchain-ts)
+node_modules/
+
+# Python adapters (adapters/langchain-py, adapters/crewai)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
 # IDE
 .idea/
 .vscode/

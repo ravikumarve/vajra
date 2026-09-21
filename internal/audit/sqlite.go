@@ -33,10 +33,10 @@ type Entry struct {
 
 // Logger manages the SQLite audit database.
 type Logger struct {
-	db       *sql.DB
-	mu       sync.Mutex
-	dbPath   string
-	maxSize  int64 // max bytes before rotation
+	db         *sql.DB
+	mu         sync.Mutex
+	dbPath     string
+	maxSize    int64 // max bytes before rotation
 	insertStmt *sql.Stmt
 }
 
@@ -63,11 +63,42 @@ func NewLogger(dbPath string, maxSizeMB int) (*Logger, error) {
 		return nil, fmt.Errorf("initializing audit schema: %w", err)
 	}
 
+	// Record schema version (see migrations/). Fresh DBs are created at
+	// the current version; future schema changes ship as migrations that
+	// bump PRAGMA user_version instead of editing initSchema in place.
+	if err := l.ensureSchemaVersion(); err != nil {
+		return nil, fmt.Errorf("recording audit schema version: %w", err)
+	}
+
 	if err := l.prepareInsert(); err != nil {
 		return nil, fmt.Errorf("preparing insert statement: %w", err)
 	}
 
 	return l, nil
+}
+
+// AuditSchemaVersion is the current audit DB schema version.
+// Bump it only together with a new file in migrations/.
+const AuditSchemaVersion = 1
+
+// ensureSchemaVersion stamps fresh databases with the current version.
+// Existing databases keep whatever version they were created with, so a
+// future migrator can detect drift instead of silently assuming the schema.
+func (l *Logger) ensureSchemaVersion() error {
+	var v int
+	if err := l.db.QueryRow("PRAGMA user_version").Scan(&v); err != nil {
+		return err
+	}
+	if v == 0 {
+		if _, err := l.db.Exec(fmt.Sprintf("PRAGMA user_version = %d", AuditSchemaVersion)); err != nil {
+			return err
+		}
+		return nil
+	}
+	if v > AuditSchemaVersion {
+		return fmt.Errorf("audit db schema v%d newer than binary v%d — upgrade vajra", v, AuditSchemaVersion)
+	}
+	return nil
 }
 
 // initSchema creates the audit table if it doesn't exist.
@@ -120,9 +151,15 @@ func (l *Logger) Log(eventType, agentID, credentialID, target, scope, ttl, decis
 		}
 	}
 
-	_, err := l.insertStmt.Exec(
-		eventType, agentID, credentialID, target, scope, ttl, decision, reason, metaJSON,
-	)
+	// Concurrent dashboard/proxy writers can hit SQLITE_BUSY — retry with
+	// backoff rather than dropping the audit row. Non-transient errors
+	// (e.g. constraint violations) return immediately, no retry.
+	err := withRetry(defaultRetryPolicy(), func() error {
+		_, rerr := l.insertStmt.Exec(
+			eventType, agentID, credentialID, target, scope, ttl, decision, reason, metaJSON,
+		)
+		return rerr
+	})
 	if err != nil {
 		return fmt.Errorf("writing audit entry: %w", err)
 	}
